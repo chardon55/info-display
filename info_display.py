@@ -8,6 +8,9 @@ import argparse as ap
 import yaml
 
 
+VERSION = "0.3.0"
+
+
 def check_size(path: str) -> int:
     return os.path.getsize(path)
 
@@ -92,10 +95,11 @@ def main(args):
     pattern = args.pattern
     exts = args.ext
     show_duration = args.show_duration
+    use_binary = not args.dec
 
     spl = '-' * 20
     print(spl)
-    print('INFODISPLAY V0.01')
+    print(f'INFODISPLAY V{VERSION}')
     print(spl)
 
     print("Initializing... ", end='')
@@ -115,7 +119,7 @@ def main(args):
             continue
 
         s_ext = item.name.split('.')[-1]
-        matched = False
+        matched = False if len(exts) else True
         for ext in exts:
             if s_ext == ext:
                 matched = True
@@ -148,8 +152,12 @@ def main(args):
 
     print("Constructing data... ", end='')
 
-    display_columns = ['File', 'Size', 'Duration']
-    columns = ['file', 'size', 'duration']
+    display_columns = ['File', 'Size']
+    columns = ['file', 'size']
+
+    if show_duration:
+        display_columns.append("Duration")
+        columns.append("duration")
 
     rendering_stat = []
 
@@ -159,8 +167,8 @@ def main(args):
     for item in stat:
         r_item = {
             'file': item['file'],
-            'size': convert_size(item['size']),
-            'duration': convert_duration(item['duration']),
+            'size': convert_size(item['size'], use_binary),
+            'duration': convert_duration(item['duration']) if show_duration else None,
         }
         rendering_stat.append(r_item)
 
@@ -168,9 +176,11 @@ def main(args):
         total_duration += item['duration']
 
     summary = {
-        "Total size": convert_size(total_size),
-        "Total duration": convert_duration(total_duration),
+        "Total size": convert_size(total_size, use_binary),
     }
+
+    if show_duration:
+        summary["Total duration"] = convert_duration(total_duration)
 
     print('done')
 
@@ -196,4 +206,6 @@ if __name__ == '__main__':
                         help="Directory for saving output statistic file")
     parser.add_argument('-D', "--show-duration", action='store_true',
                         help="Show duration of files (Audio and video only)")
+    parser.add_argument('-E', '--dec', '--decimal', action='store_true',
+                        help="Use decimal data units (e.g. MB, GB, TB) instead of the binary ones (e.g. MiB, GiB, TiB)")
     main(parser.parse_args())
